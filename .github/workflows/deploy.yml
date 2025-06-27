@@ -86,6 +86,8 @@ jobs:
           --max-instances=2
           --service-account=${{ secrets.GCP_SA_EMAIL }}
           --timeout=3m
+        env_vars: |
+          API_KEY=${{ secrets.API_KEY }}
 
     # Step 7: Output the URL of the deployed service
     - name: Show Output URL

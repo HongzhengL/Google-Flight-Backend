@@ -1,8 +1,10 @@
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Depends, Security
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from pydantic import BaseModel
 from typing import Literal, Optional, List
 import logging
+import os
 from fast_flights import FlightData, get_flights, Passengers
 
 from app.url import generate_url_one_way, generate_url_round_trip
@@ -10,6 +12,19 @@ from app.url import generate_url_one_way, generate_url_round_trip
 # Configure logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
+
+# API Key configuration
+API_KEY = os.getenv("API_KEY", "your-secret-api-key-here")
+security = HTTPBearer()
+
+def verify_api_key(credentials: HTTPAuthorizationCredentials = Security(security)):
+    if credentials.credentials != API_KEY:
+        raise HTTPException(
+            status_code=401,
+            detail="Invalid API key",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+    return credentials.credentials
 
 app = FastAPI(title="Flight Search API", version="1.0.0")
 
@@ -60,7 +75,7 @@ async def health_check():
 
 
 @app.post("/search-flights", response_model=FlightSearchResponse)
-async def search_flights(request: FlightSearchRequest):
+async def search_flights(request: FlightSearchRequest, api_key: str = Depends(verify_api_key)):
     try:
         logger.info(f"Searching flights from {request.origin} to {request.destination}")
 
