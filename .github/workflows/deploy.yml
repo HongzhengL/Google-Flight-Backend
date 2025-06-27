@@ -1,0 +1,61 @@
+# .github/workflows/deploy.yml
+
+name: Deploy to Google Cloud Run
+
+on:
+  push:
+    branches: [ deploy ]
+  pull_request:
+    branches: [ main ]
+
+env:
+  PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
+  SERVICE_NAME: flight-backend
+  REGION: us-central1
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    
+    # Add permissions to the job to allow authentication with Google Cloud
+    permissions:
+      contents: 'read'
+      id-token: 'write'
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Authenticate to Google Cloud
+      id: auth
+      uses: 'google-github-actions/auth@v2'
+      with:
+        workload_identity_provider: 'projects/${{ secrets.GCP_PROJECT_NUMBER }}/locations/global/workloadIdentityPools/${{ secrets.WIF_POOL_ID }}/providers/${{ secrets.WIF_PROVIDER_ID }}'
+        service_account: '${{ secrets.GCP_SA_EMAIL }}'
+
+    - name: Set up Google Cloud CLI
+      uses: google-github-actions/setup-gcloud@v2
+
+    - name: Build and Push Docker image
+      uses: docker/build-push-action@v5
+      with:
+        push: true
+        # Assumes you are using Artifact Registry. Replace with gcr.io if needed.
+        # Example: gcr.io/${{ env.PROJECT_ID }}/${{ env.SERVICE_NAME }}:${{ github.sha }}
+        tags: ${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.SERVICE_NAME }}/${{ env.SERVICE_NAME }}:${{ github.sha }}
+        # Point to the Dockerfile
+        file: ./Dockerfile 
+
+    - name: Deploy to Cloud Run
+      id: deploy
+      uses: google-github-actions/deploy-cloudrun@v2
+      with:
+        service: ${{ env.SERVICE_NAME }}
+        region: ${{ env.REGION }}
+        # Deploy the specific image just built
+        image: ${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.SERVICE_NAME }}/${{ env.SERVICE_NAME }}:${{ github.sha }}
+        # Allows public access. Remove if the service should be private.
+        allow_unauthenticated: true 
+
+    - name: Show Output URL
+      run: echo ${{ steps.deploy.outputs.url }}
