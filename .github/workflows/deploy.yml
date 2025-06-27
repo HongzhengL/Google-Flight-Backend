@@ -77,12 +77,13 @@ jobs:
         region: ${{ env.REGION }}
         # Specifies the exact image to deploy, using the tag created in the previous step.
         image: ${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.SERVICE_NAME }}/${{ env.SERVICE_NAME }}:${{ github.sha }}
-        # Allows public access to the service. Set to false for private services.
-        allow_unauthenticated: true
-        # Optional: Configure resource limits for the Cloud Run service.
-        memory: 512Mi
-        cpu: 1
-        max_instances: 2
+        # Pass additional gcloud command-line flags.
+        # This is the correct way to specify resource limits and IAM settings.
+        flags: >-
+          --allow-unauthenticated
+          --memory=512Mi
+          --cpu=1
+          --max-instances=2
 
     # Step 7: Output the URL of the deployed service
     - name: Show Output URL
