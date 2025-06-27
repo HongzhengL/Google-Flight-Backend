@@ -16,7 +16,7 @@ env:
 jobs:
   deploy:
     runs-on: ubuntu-latest
-    
+
     # Add permissions to the job to allow authentication with Google Cloud
     permissions:
       contents: 'read'
@@ -56,6 +56,9 @@ jobs:
         image: ${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.SERVICE_NAME }}/${{ env.SERVICE_NAME }}:${{ github.sha }}
         # Allows public access. Remove if the service should be private.
         allow_unauthenticated: true 
+        memory: 512Mi
+        cpu: 1
+        max_instances: 2
 
     - name: Show Output URL
       run: echo ${{ steps.deploy.outputs.url }}
