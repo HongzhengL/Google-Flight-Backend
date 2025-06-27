@@ -1,0 +1,92 @@
+# .github/workflows/deploy.yml
+
+# This workflow builds a Docker image, pushes it to Google Artifact Registry,
+# and then deploys it to Google Cloud Run.
+
+name: Deploy to Google Cloud Run
+
+on:
+  # Triggers the workflow on push events but only for the "deploy" branch
+  push:
+    branches: [ deploy ]
+  # Triggers the workflow on pull request events but only for the "main" branch
+  pull_request:
+    branches: [ main ]
+
+env:
+  # Set environment variables for the job.
+  # Using GitHub secrets to avoid hardcoding sensitive information.
+  PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
+  SERVICE_NAME: flight-backend
+  REGION: us-central1
+
+jobs:
+  deploy:
+    # The type of runner that the job will run on
+    runs-on: ubuntu-latest
+
+    # Add permissions to the job to allow authentication with Google Cloud.
+    # This is required for Workload Identity Federation.
+    permissions:
+      contents: 'read'
+      id-token: 'write'
+
+    steps:
+    # Step 1: Check out the repository's code
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    # Step 2: Authenticate to Google Cloud using Workload Identity Federation
+    - name: Authenticate to Google Cloud
+      id: auth
+      uses: 'google-github-actions/auth@v2'
+      with:
+        # Provide the details of your Workload Identity Pool and Provider.
+        # It's recommended to store these as GitHub secrets.
+        workload_identity_provider: 'projects/${{ secrets.GCP_PROJECT_NUMBER }}/locations/global/workloadIdentityPools/${{ secrets.WIF_POOL_ID }}/providers/${{ secrets.WIF_PROVIDER_ID }}'
+        # The service account that the GitHub Actions job will impersonate.
+        service_account: '${{ secrets.GCP_SA_EMAIL }}'
+
+    # Step 3: Set up the Google Cloud CLI (gcloud)
+    # This step is useful if you need to run gcloud commands later.
+    - name: Set up Google Cloud CLI
+      uses: google-github-actions/setup-gcloud@v2
+
+    # Step 4: Configure Docker to use Google Cloud credentials
+    # This command configures the Docker client to authenticate to Artifact Registry.
+    - name: Configure Docker
+      run: gcloud auth configure-docker ${{ env.REGION }}-docker.pkg.dev
+
+    # Step 5: Build the Docker image and push it to Artifact Registry
+    - name: Build and Push Docker image
+      uses: docker/build-push-action@v5
+      with:
+        push: true
+        # The tag for the Docker image. It includes the region, project ID, service name,
+        # and the commit SHA to ensure a unique image for each deployment.
+        tags: ${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.SERVICE_NAME }}/${{ env.SERVICE_NAME }}:${{ github.sha }}
+        # Specifies the location of the Dockerfile.
+        file: ./Dockerfile
+
+    # Step 6: Deploy the container image to Cloud Run
+    - name: Deploy to Cloud Run
+      id: deploy
+      uses: google-github-actions/deploy-cloudrun@v2
+      with:
+        service: ${{ env.SERVICE_NAME }}
+        region: ${{ env.REGION }}
+        # Specifies the exact image to deploy, using the tag created in the previous step.
+        image: ${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.SERVICE_NAME }}/${{ env.SERVICE_NAME }}:${{ github.sha }}
+        # Pass additional gcloud command-line flags.
+        # This is the correct way to specify resource limits and IAM settings.
+        flags: >-
+          --allow-unauthenticated
+          --memory=512Mi
+          --cpu=1
+          --max-instances=2
+          --service-account=${{ secrets.GCP_SA_EMAIL }}
+          --timeout=3m
+
+    # Step 7: Output the URL of the deployed service
+    - name: Show Output URL
+      run: echo ${{ steps.deploy.outputs.url }}
