@@ -85,7 +85,7 @@ jobs:
           --cpu=1
           --max-instances=2
           --service-account=${{ secrets.GCP_SA_EMAIL }}
-          --timeout=10m
+          --timeout=3m
 
     # Step 7: Output the URL of the deployed service
     - name: Show Output URL
