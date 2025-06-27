@@ -52,7 +52,12 @@ jobs:
     - name: Set up Google Cloud CLI
       uses: google-github-actions/setup-gcloud@v2
 
-    # Step 4: Build the Docker image and push it to Artifact Registry
+    # Step 4: Configure Docker to use Google Cloud credentials
+    # This command configures the Docker client to authenticate to Artifact Registry.
+    - name: Configure Docker
+      run: gcloud auth configure-docker ${{ env.REGION }}-docker.pkg.dev
+
+    # Step 5: Build the Docker image and push it to Artifact Registry
     - name: Build and Push Docker image
       uses: docker/build-push-action@v5
       with:
@@ -63,7 +68,7 @@ jobs:
         # Specifies the location of the Dockerfile.
         file: ./Dockerfile
 
-    # Step 5: Deploy the container image to Cloud Run
+    # Step 6: Deploy the container image to Cloud Run
     - name: Deploy to Cloud Run
       id: deploy
       uses: google-github-actions/deploy-cloudrun@v2
@@ -79,6 +84,6 @@ jobs:
         cpu: 1
         max_instances: 2
 
-    # Step 6: Output the URL of the deployed service
+    # Step 7: Output the URL of the deployed service
     - name: Show Output URL
       run: echo ${{ steps.deploy.outputs.url }}
