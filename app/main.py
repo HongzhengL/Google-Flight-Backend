@@ -124,40 +124,29 @@ async def search_flights(request: FlightSearchRequest, api_key: str = Depends(ve
             seat=request.seat_type,
         )
 
-        # Convert flights to response format
+        # Convert flights to response format with duplicate prevention
         flight_results = []
+        seen_flights = set()  # Track unique flights
         assert request.currency is not None
-        if not is_round_trip:
-            for flight in result.flights:
-                flight_info = FlightInfo(
-                    airline=flight.name,
-                    departure_time=flight.departure,
-                    arrival_time=flight.arrival,
-                    duration=flight.duration,
-                    price=flight.price,
-                    currency="USD",
-                    stops=flight.stops,
-                    booking_url=generate_url_one_way(
-                        origin=request.origin,
-                        destination=request.destination,
-                        depart_date=request.departure_date,
-                        passenger=passengers,
-                        seat_type=request.seat_type,
-                        currency=request.currency,
-                    ),
-                )
-                flight_results.append(flight_info)
-        elif is_round_trip:
-            for flight in result.flights:
-                flight_info = FlightInfo(
-                    airline=flight.name,
-                    departure_time=flight.departure,
-                    arrival_time=flight.arrival,
-                    duration=flight.duration,
-                    price=flight.price,
-                    currency="USD",
-                    stops=flight.stops,
-                    booking_url=generate_url_round_trip(
+        
+        for flight in result.flights:
+            # Create a unique identifier for the flight
+            flight_key = (
+                flight.name,
+                flight.departure,
+                flight.arrival,
+                flight.duration,
+                flight.price,
+                flight.stops
+            )
+            
+            # Only add if we haven't seen this exact flight before
+            if flight_key not in seen_flights:
+                seen_flights.add(flight_key)
+                
+                # Generate appropriate booking URL based on trip type
+                if is_round_trip:
+                    booking_url = generate_url_round_trip(
                         origin=request.origin,
                         destination=request.destination,
                         depart_date=request.departure_date,
@@ -165,11 +154,30 @@ async def search_flights(request: FlightSearchRequest, api_key: str = Depends(ve
                         passenger=passengers,
                         seat_type=request.seat_type,
                         currency=request.currency,
-                    ),
+                    )
+                else:
+                    booking_url = generate_url_one_way(
+                        origin=request.origin,
+                        destination=request.destination,
+                        depart_date=request.departure_date,
+                        passenger=passengers,
+                        seat_type=request.seat_type,
+                        currency=request.currency,
+                    )
+                
+                flight_info = FlightInfo(
+                    airline=flight.name,
+                    departure_time=flight.departure,
+                    arrival_time=flight.arrival,
+                    duration=flight.duration,
+                    price=flight.price,
+                    currency="USD",
+                    stops=flight.stops,
+                    booking_url=booking_url,
                 )
                 flight_results.append(flight_info)
 
-        logger.info(f"Found {len(flight_results)} flights")
+        logger.info(f"Found {len(flight_results)} unique flights")
 
         return FlightSearchResponse(
             success=True, flights=flight_results, total_results=len(flight_results)
