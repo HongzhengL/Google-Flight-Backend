@@ -167,7 +167,7 @@ async def chat_completions(
         raise HTTPException(status_code=500, detail=str(e))
 
 
-@app.post("/v1/completions")
+@app.post("/v1/completions", response_model=None)
 async def completions(
     request: CompletionRequest,
     engine: AsyncLLMEngine = Depends(get_engine)
