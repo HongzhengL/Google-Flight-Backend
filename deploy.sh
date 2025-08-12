@@ -66,11 +66,12 @@ gcloud run deploy $SERVICE_NAME \
     --cpu 8 \
     --timeout 1200 \
     --concurrency 4 \
-    --max-instances 5 \
+    --max-instances 1 \
     --min-instances 0 \
     --port 8080 \
     --no-allow-unauthenticated \
     --execution-environment gen2 \
+    --no-gpu-zonal-redundancy \
     --set-env-vars "MAX_NUM_SEQS=4,GPU_MEMORY_UTILIZATION=0.90,MODEL_NAME=gpt-oss-20b,LOG_LEVEL=INFO" \
     --quiet
 

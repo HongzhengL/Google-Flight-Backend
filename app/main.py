@@ -107,7 +107,7 @@ async def liveness_endpoint():
 
 
 # OpenAI-compatible endpoints
-@app.post("/v1/chat/completions")
+@app.post("/v1/chat/completions", response_model=None)
 async def chat_completions(
     request: ChatCompletionRequest,
     engine: AsyncLLMEngine = Depends(get_engine)
