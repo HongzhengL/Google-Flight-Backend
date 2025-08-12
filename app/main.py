@@ -1,5 +1,9 @@
 """Main FastAPI application for GPT-OSS-20B API service."""
 
+import os
+# Set HuggingFace home directory for pre-downloaded models
+os.environ["HF_HOME"] = "/models"
+
 import logging
 import uuid
 from contextlib import asynccontextmanager

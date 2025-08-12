@@ -73,7 +73,6 @@ gcloud run deploy $SERVICE_NAME \
     --execution-environment gen2 \
     --no-gpu-zonal-redundancy \
     --set-env-vars "MAX_NUM_SEQS=4,GPU_MEMORY_UTILIZATION=0.90,MODEL_NAME=openai/gpt-oss-20b,LOG_LEVEL=INFO" \
-    --no-startup-probe \
     --quiet
 
 # Get the service URL

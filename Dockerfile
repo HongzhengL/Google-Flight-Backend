@@ -30,10 +30,19 @@ COPY requirements.txt .
 # Install Python dependencies
 RUN pip install --no-cache-dir -r requirements.txt
 
+# Pre-download the model during build
+# This will download the model to the HuggingFace cache directory
+ENV HF_HOME=/models
+RUN mkdir -p /models && \
+    python -c "from huggingface_hub import snapshot_download; \
+    print('Downloading openai/gpt-oss-20b model...'); \
+    snapshot_download('openai/gpt-oss-20b', cache_dir='/models', ignore_patterns=['*.safetensors']); \
+    print('Model download complete')"
+
 # Copy application code
 COPY app ./app
 
-# Create directory for model downloads
+# Create directory for model downloads (kept for compatibility)
 RUN mkdir -p /tmp/models
 
 # Expose port

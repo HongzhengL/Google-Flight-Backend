@@ -75,6 +75,13 @@ class LLMEngineManager:
         Raises:
             RuntimeError: If model download fails
         """
+        # First check if model is pre-downloaded in /models (from Docker build)
+        pre_downloaded_path = Path(f"/models/models--{settings.model_name.replace('/', '--')}")
+        if pre_downloaded_path.exists():
+            logger.info(f"Using pre-downloaded model from Docker image: {pre_downloaded_path}")
+            return str(pre_downloaded_path)
+        
+        # Fall back to downloading if not pre-downloaded
         model_path = Path(settings.model_download_path) / settings.model_name
         
         # Check if model already exists
