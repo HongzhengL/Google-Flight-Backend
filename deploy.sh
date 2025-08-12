@@ -72,7 +72,7 @@ gcloud run deploy $SERVICE_NAME \
     --no-allow-unauthenticated \
     --execution-environment gen2 \
     --no-gpu-zonal-redundancy \
-    --set-env-vars "MAX_NUM_SEQS=4,GPU_MEMORY_UTILIZATION=0.90,MODEL_NAME=gpt-oss-20b,LOG_LEVEL=INFO" \
+    --set-env-vars "MAX_NUM_SEQS=4,GPU_MEMORY_UTILIZATION=0.90,MODEL_NAME=openai/gpt-oss-20b,LOG_LEVEL=INFO" \
     --quiet
 
 # Get the service URL
