@@ -1,11 +1,35 @@
+version: "3.8"
+
 services:
-  flight-backend:
+  gpt-oss-20b:
     build: .
-    container_name: flight-backend
+    container_name: gpt-oss-20b-api
     ports:
       - "8080:8080"
+    environment:
+      - HUGGINGFACE_TOKEN=${HUGGINGFACE_TOKEN:-}
+      - MAX_NUM_SEQS=${MAX_NUM_SEQS:-4}
+      - GPU_MEMORY_UTILIZATION=${GPU_MEMORY_UTILIZATION:-0.90}
+      - MODEL_NAME=${MODEL_NAME:-gpt-oss-20b}
+      - LOG_LEVEL=${LOG_LEVEL:-INFO}
+    volumes:
+      - model-cache:/tmp/models
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
+    runtime: nvidia
     healthcheck:
       test: ["CMD", "curl", "-sf", "http://localhost:8080/health"]
       interval: 60s
       timeout: 10s
       retries: 3
+      start_period: 300s
+    restart: unless-stopped
+
+volumes:
+  model-cache:
+    driver: local

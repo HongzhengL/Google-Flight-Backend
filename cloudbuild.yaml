@@ -1,0 +1,54 @@
+steps:
+  # Build the container image
+  - name: 'gcr.io/cloud-builders/docker'
+    args: [
+      'build', 
+      '-t', '${_IMAGE_NAME}:${BUILD_ID}',
+      '-t', '${_IMAGE_NAME}:latest',
+      '.'
+    ]
+  
+  # Push the container image to Artifact Registry
+  - name: 'gcr.io/cloud-builders/docker'
+    args: [
+      'push',
+      '--all-tags',
+      '${_IMAGE_NAME}'
+    ]
+  
+  # Deploy to Cloud Run
+  - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
+    entrypoint: 'gcloud'
+    args: [
+      'run', 'deploy', '${_SERVICE_NAME}',
+      '--image', '${_IMAGE_NAME}:${BUILD_ID}',
+      '--platform', 'managed',
+      '--region', '${_REGION}',
+      '--allow-unauthenticated',
+      '--gpu', '1',
+      '--gpu-type', 'nvidia-l4',
+      '--memory', '32Gi',
+      '--cpu', '8',
+      '--timeout', '1200',
+      '--concurrency', '4',
+      '--max-instances', '5',
+      '--min-instances', '0',
+      '--port', '8080',
+      '--set-env-vars', 'MAX_NUM_SEQS=4,GPU_MEMORY_UTILIZATION=0.90,MODEL_NAME=gpt-oss-20b',
+      '--execution-environment', 'gen2'
+    ]
+
+# Substitutions for build variables
+substitutions:
+  _SERVICE_NAME: 'gpt-oss-20b-api'
+  _IMAGE_NAME: '${_REGION}-docker.pkg.dev/${PROJECT_ID}/${_ARTIFACT_REGISTRY_REPO}/${_SERVICE_NAME}'
+  _REGION: 'us-central1'
+  _ARTIFACT_REGISTRY_REPO: 'cloud-run-source-deploy'
+
+# Build options
+options:
+  logging: CLOUD_LOGGING_ONLY
+  machineType: 'E2_HIGHCPU_8'
+
+# Build timeout (increased for large model downloads)
+timeout: 3600s
