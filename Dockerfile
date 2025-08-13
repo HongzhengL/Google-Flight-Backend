@@ -31,13 +31,15 @@ COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
 # Pre-download the model during build
-# This will download the model to the HuggingFace cache directory
+# Set environment variable for model cache
 ENV HF_HOME=/models
+ENV TRANSFORMERS_CACHE=/models
+
+# Download the model using huggingface-cli
 RUN mkdir -p /models && \
-    python -c "from huggingface_hub import snapshot_download; \
-    print('Downloading openai/gpt-oss-20b model...'); \
-    snapshot_download('openai/gpt-oss-20b', cache_dir='/models', ignore_patterns=['*.safetensors']); \
-    print('Model download complete')"
+    pip install --no-cache-dir huggingface-hub && \
+    huggingface-cli download openai/gpt-oss-20b --local-dir /models/openai/gpt-oss-20b --quiet && \
+    echo "Model download complete"
 
 # Copy application code
 COPY app ./app
